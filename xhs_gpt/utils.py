@@ -1,4 +1,5 @@
 import requests
+from langchain.tools import Tool
 
 
 def sign(uri, data=None, a1="", web_session=""):
@@ -10,3 +11,6 @@ def sign(uri, data=None, a1="", web_session=""):
         "x-s": signs["x-s"],
         "x-t": signs["x-t"]
     }
+
+def unzip_prompt_run(tools):
+    return [i.tool for i in tools],[Tool.from_function(func=i.run, name=i.tool['name'], description=i.tool['description']) for i in tools]

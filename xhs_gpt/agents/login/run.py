@@ -1,32 +1,16 @@
 import datetime
 import json
 import os
-
 import qrcode
-from time import sleep
-
+import tempfile
+import tkinter as tk
+from PIL import Image, ImageTk
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from playwright.sync_api import sync_playwright
+from time import sleep
 
 from xhs import XhsClient, DataFetchError
-from playwright.sync_api import sync_playwright
-import tempfile
-from PIL import Image, ImageTk
-import tkinter as tk
-import openai
-from functools import partial
-class Client(openai.Client):
-    def __init__(self, *args, **kwargs):
-        kwargs.update({'proxies': os.environ['HTTP_PROXY']})
-        super().__init__(*args, **kwargs)
-# openai.Client = Client
-
-#
-# client = openai.Client()
-# client.chat.completions.create(
-#     messages=[{'role':'user','content':'hi'}],
-#     model='gpt-3.5-turbo'
-# )
 
 
 def sign(uri, data=None, a1="", web_session=""):
@@ -54,7 +38,8 @@ def sign(uri, data=None, a1="", web_session=""):
                     "x-s": encrypt_params["X-s"],
                     "x-t": str(encrypt_params["X-t"])
                 }
-        except Exception:
+        except Exception as e:
+            print(e)
             # 这儿有时会出现 window._webmsxyw is not a function 或未知跳转错误，因此加一个失败重试趴
             pass
     raise Exception("重试了这么多次还是无法签名成功，寄寄寄")
@@ -71,7 +56,7 @@ class GenerateQRCode:
     }
 
     @classmethod
-    def run(cls,):
+    def run(cls, ):
         # print(prompt)
         xhs_client = XhsClient(sign=sign)
         print(datetime.datetime.now())
@@ -169,7 +154,7 @@ class CheckQRCode:
             sleep(1)
             if check_qrcode["code_status"] == 2:
                 print(json.dumps(check_qrcode["login_info"], indent=4))
-                with tempfile.NamedTemporaryFile('w',delete=False, suffix='cookie', prefix='xhs_login_') as f:
+                with tempfile.NamedTemporaryFile('w', delete=False, suffix='.cookie', prefix='xhs_login_') as f:
                     f.write(xhs_client.cookie)
                 return {
                     'login_status': 'success',
@@ -222,7 +207,8 @@ agent = (
 )
 
 agent_executor = AgentExecutor(
-    agent=agent, tools=tool_runs, max_iterations=15, early_stopping_method="generate", return_intermediate_steps=True, verbose=True
+    agent=agent, tools=tool_runs, max_iterations=15, early_stopping_method="generate", return_intermediate_steps=True,
+    verbose=True
 )
 
 
@@ -242,5 +228,3 @@ class Login:
         result = agent_executor.invoke({'input': """Let's start"""})
         print(result['output'])
         return result['intermediate_steps'][-1][1]
-
-
