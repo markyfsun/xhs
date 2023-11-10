@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 import tempfile
 from operator import itemgetter
 
@@ -12,11 +13,11 @@ from langchain.schema.runnable import RunnableLambda, RunnableMap
 from xhs import XhsClient
 from xhs_gpt.utils import unzip_prompt_run
 
-json_llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-1106").bind(response_format={"type": "json_object"})
+json_llm = ChatOpenAI(temperature=.7, model="gpt-4-1106-preview").bind(response_format={"type": "json_object"})
 create_note_body_prompt = ChatPromptTemplate.from_messages([
-    ('system', """User will provide you with a requirement. You are helping user to generate a Xiaohongshu note in JSON. The note contains a title, a description and a list of tags.
+    ('system', """User will provide you with an basic idea, and you are helping user to generate an attractive Xiaohongshu post in JSON. A post contains a title, a description and a list of tags. Include line break in description.
     
-Users in Xiaohongshu use certain writing styles:
+Use the following writing styles:
 
 1. Friendly and Casual: Posts on Xiaohongshu are typically written in the first person, creating a feeling of sharing between friends. The language is colloquial and down-to-earth, making it approachable and relatable.
 
@@ -24,38 +25,26 @@ Users in Xiaohongshu use certain writing styles:
 
 3. Use of Emoji: Xiaohongshu posts frequently use emojis to enrich expression and add fun, making the content more lively and engaging.
 
-4. Diverse Topics: Xiaohongshu covers a variety of topics, such as beauty, food, travel, lifestyle, etc. Therefore, its writing style is also very diverse, including detailed product reviews and relaxed life sharing.
+4. High Interactivity: Xiaohongshu posts usually encourage readers to participate in discussions, for example by asking questions or initiating topics, enhancing the interactivity of the posts.
 
-5. High Interactivity: Xiaohongshu posts usually encourage readers to participate in discussions, for example by asking questions or initiating topics, enhancing the interactivity of the posts.
+5. Practicality: Xiaohongshu posts often provide practical information, such as product use experiences, travel strategies, etc. These pieces of information are based on personal actual experiences and have high reference value.
 
-6. Practicality: Xiaohongshu posts often provide practical information, such as product use experiences, travel strategies, etc. These pieces of information are based on personal actual experiences and have high reference value.
-
-# Xiaohongshu JSON note Examples
-```json
+# Xiaohongshu JSON post Examples
 {{"title": "绝了❗️为“哄”孩子喝光牛奶，设计师有妙招👏", 
 "description": "近年来，日本学校午餐牛奶剩余问题已成为小学和初中难以解决的问题。因此。奥美日本为Seki Milk重新设计了包装：将漫画用白色的笔印刻在瓶身之上，若想看完漫画内容，就必须把整瓶牛奶干光！\n这是一个独特的想法，并得到了很多回应。牛奶瓶上画的是漫画家阿美明彦的原创作品《牛奶怪物》，总共多达10集。\n该牛奶在岐阜县关市旭丘小学的学校午餐时间试用时，孩子们的反应都非常好，有些小朋友说：“漫画很有趣，学校的午餐也变得有趣！”", 
 "tags": ["工业设计", "设计灵感", "产品设计", "漫画", "设计", "牛奶", "牛奶瓶", "包装设计"] }}
-```
-```json
 {{"title": "158/102 来看小狗流鼻涕", 
 "description": "衣服上的狗狗太可爱了💧", 
 "tags": ["今天穿什么香", "狗狗t", "白短裤", "小个子穿搭"]}}
 {{"title": "这种又粘人又帅的混血帅哥到底是谁在谈啊", 
 "description": "原来是我自己", 
 "tags": ["姐弟恋", "异国恋", "混血", "小奶狗", "外国男友", "男朋友", "恋爱", "恋爱日常", "甜甜的恋爱", "情侣", "小情侣的日常", "日常碎片PLOG", "笔记灵感"]}}
-```
-```json
 {{"title": "🍁来Arrow Town赏秋", 
 "description": "深秋的箭镇好治愈，漫山遍野的秋色，仿佛打翻了颜料盘🎨，来了箭镇要好好拍照记录📝。\n\n📷拍照点：1⃣️Wilcox Green：Wilcox Green是个拍照标志地，最佳拍照时间在下午四点左右，但是容易发生在你拍照的时候，旁边等着很多游客，这时候只能尴尬地笑笑，表情管理有点难😅\n2⃣️箭镇大草坪：Wilcox Green所在的大草坪，选一处人少的地方拍照片，这时候怎么凹造型都没人催\n3⃣️街景：在箭镇，拍拍Buckingham Street和Arrow Lane的街景和建筑也不错，可多走两步到Wiltshire Street找个高点往下拍五彩树林和街景\nps：找到一段在施工的路，我在保证安全的前提下坐在地上拍了一张，但不推荐。\n\n箭镇每年赏秋最佳季节是四月中旬到五月初，四月最后一周会举办金秋节，这个季节这边时有阵雨🌦️，但是阴雨天的箭镇也有不一样的感觉，这次在箭镇我全程用富士相机📷，适配指数💯", 
 "tags": ["五一去哪玩", "新西兰", "新西兰箭镇", "和大自然亲密接触", "治愈系风景", "富士相机"]}}
-```
-```json
 {{"title": "五一出游好去处｜洞头岛屿生活市集", 
 "description": "刚从南京回来\n陪我回来的闺蜜问我去哪里玩\n这不赶巧了\n洞头刚好有台湾美食节！\n不只是美食\n还有精彩的舞台演出！\n\n网红打卡大黄鸭\n台湾美食一条gai\n免费啤酒畅饮\n精彩的乐队演出\n氛围感落日灯……\n真的又好出片\n又快乐……\n\n🕒4.29～5.3 17:00～21:00\n📍洞头北岙街道东沙渔港", 
-"tags": ["温州探店", "洞头旅游攻略", "洞头旅游", "五一去哪儿"]}}
-```
-
-Always response in JSON."""),
+"tags": ["温州探店", "洞头旅游攻略", "洞头旅游", "五一去哪儿"]}}"""),
     ('human', "{input}"),
 ])
 
@@ -70,18 +59,20 @@ def create_image(size, style, prompt):
             model='dall-e-3',
             n=1,
             size=size,
-            style=style
+            style=style,
+            quality='hd' if style == 'natural' else 'standard',
         )
         print(response.data[0].revised_prompt)
         return response.data[0].url
-    except openai.BadRequestError:
+    except Exception as e:
+        logging.exception(e)
         return None
 
 
 class CreateImage:
     tool = {
         "name": "create_images",
-        "description": "create images with English descriptions",
+        "description": "create images by English descriptions",
         "parameters": {
             "type": "object",
             "properties": {
@@ -145,14 +136,14 @@ You need to derive the descriptions in your own words. They should be as detaile
 "Step into a world of enchantment with a stunning makeup look flawlessly applied, enhancing the wearer's natural beauty with precision and artistry. The carefully chosen colors accentuate their eyes, lips, and cheekbones, creating an ethereal glow that exudes an air of confidence and elegance."]
 ```
 
-Image descriptions should be and in English, and always generate more than 2 images."""),
+Always response in English, and always generate more than 2 images."""),
         ("user", "{input}"),
         MessagesPlaceholder(variable_name="agent_scratchpad"),
     ]
 )
 
 
-llm = ChatOpenAI(temperature=.7, model="gpt-3.5-turbo-1106")
+llm = ChatOpenAI(temperature=.5, model="gpt-3.5-turbo-1106").bind(function_call={"name": "create_images"})
 create_image_llm = llm.bind(functions=create_image_tool_prompts)
 create_image_agent = (
         {
@@ -178,13 +169,13 @@ class CreateNote:
         "description": "Create a note on Xiaohongshu. Require login.",
         "parameters": {"type": "object",
                        "properties": {
-                           "topic": {
+                           "description": {
                                "type": "string",
-                               "description": "The topic of the note"
+                               "description": "detailed description of this note"
                            },
                            "token_file": {
                                "type": "string",
-                               "description": "path to token file"
+                               "description": "generated by `login` tool"
                            },
                        },
                        'required': ['topic','token_file']
@@ -260,4 +251,4 @@ create_note_agent_executor = AgentExecutor(
 # })
 
 
-result=CreateNote.run('深圳好吃的','/var/folders/k9/2mh_kjcd0cqg6nbz0wxy988r0000gn/T/xhs_login_4n6xz79l.cookie')
+# result=CreateNote.run('可爱的贴纸','/var/folders/k9/2mh_kjcd0cqg6nbz0wxy988r0000gn/T/xhs_login_4n6xz79l.cookie')

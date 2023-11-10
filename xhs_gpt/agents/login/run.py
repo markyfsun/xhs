@@ -148,7 +148,7 @@ class CheckQRCode:
     @classmethod
     def run(cls, qr_id, qr_code):
         xhs_client = XhsClient(sign=sign)
-        for _ in range(60):
+        for _ in range(3):
             check_qrcode = xhs_client.check_qrcode(qr_id, qr_code)
             print(check_qrcode)
             sleep(1)
@@ -184,7 +184,7 @@ tool_runs = [Tool.from_function(func=i.run, name=i.tool['name'], description=i.t
 
 prompt = ChatPromptTemplate.from_messages(
     [
-        ("system", """You are helping user to get the `token_file` which contains tokens to login to RedBook (小红书).
+        ("system", """You are helping user to get the `token_file` which contains tokens to login to Xiaohongshu.
 Generally, you need to first generate a login QR code, then display the QR code to user for scanning, and finally check the QR code status to see whether login has succeeded.
 Provide user friendly feedback."""),
         ("user", "{input}"),
@@ -215,7 +215,7 @@ agent_executor = AgentExecutor(
 class Login:
     tool = {
         "name": "login",
-        "description": "Login to RedBook (小红书). Response with the `token_file` which contains login token.",
+        "description": "Login to Xiaohongshu. Response with `token_file` which contains login token.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -228,3 +228,7 @@ class Login:
         result = agent_executor.invoke({'input': """Let's start"""})
         print(result['output'])
         return result['intermediate_steps'][-1][1]
+
+if __name__ == '__main__':
+    result = Login.run()
+    print(result)
