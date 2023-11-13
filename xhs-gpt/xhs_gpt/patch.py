@@ -1,4 +1,4 @@
-from typing import Union, Dict, Tuple, Optional, Callable, Any
+from typing import Union, Dict, Tuple
 
 
 def monkey_patch():
@@ -14,6 +14,3 @@ def monkey_patch():
 
     # Monkey patch the Tool class
     langchain.tools.base.Tool._to_args_and_kwargs = new_to_args_and_kwargs
-
-
-monkey_patch()

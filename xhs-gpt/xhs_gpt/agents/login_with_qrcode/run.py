@@ -1,23 +1,24 @@
 import datetime
 import json
-import os
-import qrcode
 import tempfile
 import tkinter as tk
+from time import sleep
+from typing import Optional
+
+import qrcode
 from PIL import Image, ImageTk
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from playwright.sync_api import sync_playwright
-from time import sleep
 
-from xhs import XhsClient, DataFetchError
+from xhs import XhsClient
 
 
 def sign(uri, data=None, a1="", web_session=""):
     for _ in range(10):
         try:
             with sync_playwright() as playwright:
-                stealth_js_path = "./stealth.min.js"
+                stealth_js_path = STEALTH_JS
                 chromium = playwright.chromium
 
                 # 如果一直失败可尝试设置成 False 让其打开浏览器，适当添加 sleep 可查看浏览器状态
@@ -168,25 +169,21 @@ class CheckQRCode:
 
 from langchain.agents.format_scratchpad import format_to_openai_functions
 from langchain.agents.output_parsers import OpenAIFunctionsAgentOutputParser
-from langchain.agents.agent import AgentAction, AgentFinish, AgentExecutor
-from langchain.tools import Tool
+from langchain.agents.agent import AgentExecutor
+from xhs_gpt.utils import unzip_prompt_run, STEALTH_JS
 
-tool_prompts = [i.tool for i in (
+tool_prompts, tool_runs = unzip_prompt_run([
     GenerateQRCode,
     DisplayQRCode,
     CheckQRCode,
-)]
-tool_runs = [Tool.from_function(func=i.run, name=i.tool['name'], description=i.tool['description']) for i in (
-    GenerateQRCode,
-    DisplayQRCode,
-    CheckQRCode,
-)]
+])
 
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", """You are helping user to get the `token_file` which contains tokens to login to Xiaohongshu.
 Generally, you need to first generate a login QR code, then display the QR code to user for scanning, and finally check the QR code status to see whether login has succeeded.
-Provide user friendly feedback."""),
+Provide user friendly feedback.
+Always use a tool!"""),
         ("user", "{input}"),
         MessagesPlaceholder(variable_name="agent_scratchpad"),
     ]
@@ -194,7 +191,7 @@ Provide user friendly feedback."""),
 
 llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-1106")
 llm_with_tools = llm.bind(functions=tool_prompts)
-agent = (
+login_with_qrcode_agent = (
         {
             "input": lambda x: x["input"],
             "agent_scratchpad": lambda x: format_to_openai_functions(
@@ -206,16 +203,28 @@ agent = (
         | OpenAIFunctionsAgentOutputParser()
 )
 
-agent_executor = AgentExecutor(
-    agent=agent, tools=tool_runs, max_iterations=15, early_stopping_method="generate", return_intermediate_steps=True,
+from langchain.pydantic_v1 import BaseModel
+
+
+class LoginWithQRCodeInput(BaseModel):
+    input: Optional[str] = """Let's start"""
+
+
+class LoginWithQRCodeOutput(BaseModel):
+    output: str
+
+
+login_with_qrcode_agent_executor = AgentExecutor(
+    agent=login_with_qrcode_agent, tools=tool_runs, max_iterations=15, early_stopping_method="generate",
+    return_intermediate_steps=True,
     verbose=True
-)
+).with_types(input_type=LoginWithQRCodeInput, output_type=LoginWithQRCodeOutput)
 
 
-class Login:
+class LoginWithQRCode:
     tool = {
-        "name": "login",
-        "description": "Login to Xiaohongshu. Response with `token_file` which contains login token.",
+        "name": "login_with_qrcode",
+        "description": "Login to Xiaohongshu with QR code. Response with `token_file` which contains login token.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -225,10 +234,11 @@ class Login:
 
     @classmethod
     def run(cls):
-        result = agent_executor.invoke({'input': """Let's start"""})
+        result = login_with_qrcode_agent_executor.invoke({'input': """Let's start"""})
         print(result['output'])
         return result['intermediate_steps'][-1][1]
 
+
 if __name__ == '__main__':
-    result = Login.run()
+    result = login_with_qrcode_agent_executor.invoke({'input': """Let's start"""})
     print(result)

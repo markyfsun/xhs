@@ -7,8 +7,10 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-langserve = "^0.0.24"
-openai = "0.28.1"
+langchain = "^0.0.335"
+xhs = "^0.2.7"
+langserve = "^0.0.26"
+openai = "^1.2.3"
 
 
 [build-system]
