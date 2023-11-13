@@ -11,6 +11,7 @@ langchain = "^0.0.335"
 xhs = "^0.2.7"
 langserve = "^0.0.26"
 openai = "^1.2.3"
+tk = "^0.1.0"
 
 
 [build-system]
