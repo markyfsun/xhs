@@ -38,7 +38,7 @@ class GetNote:
         xhs_client = XhsClient(cookie=cookie, sign=sign)
         note = xhs_client.get_note_by_id(note_id)
         return {
-            "metadata": note,
+            # "metadata": note,  # metadata too long
             "summary": summary_note(note)
         }
 

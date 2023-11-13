@@ -11,7 +11,9 @@ langchain = "^0.0.335"
 xhs = "^0.2.7"
 langserve = "^0.0.26"
 openai = "^1.2.3"
-tk = "^0.1.0"
+langchain-cli = "^0.0.16"
+qrcode = "^7.4.2"
+pillow = "^10.1.0"
 
 
 [build-system]

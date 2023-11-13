@@ -9,7 +9,7 @@ STEALTH_JS = os.path.join(CURRENT_FOLDER, "stealth.min.js")
 
 def sign(uri, data=None, a1="", web_session=""):
     # 填写自己的 flask 签名服务端口地址
-    res = requests.post("http://localhost:5005/sign",
+    res = requests.post("http://127.0.0.1:5005/sign",
                         json={"uri": uri, "data": data, "a1": a1, "web_session": web_session})
     signs = res.json()
     return {

@@ -1,7 +1,7 @@
 from typing import Union, Dict, Tuple
 
 
-def monkey_patch():
+def patch_langchain():
     """Allow multi-input tools."""
     import langchain.tools.base
 
@@ -14,3 +14,17 @@ def monkey_patch():
 
     # Monkey patch the Tool class
     langchain.tools.base.Tool._to_args_and_kwargs = new_to_args_and_kwargs
+
+
+def patch_xhs():
+    """Login to Xiaohongshu should default to bypass proxies."""
+    import xhs
+    old = xhs.core.XhsClient
+
+    class XhsClient(old):
+
+        def __init__(self, cookie=None, user_agent=None, timeout=10, proxies=None, sign=None):
+            super().__init__(cookie=cookie, user_agent=user_agent, timeout=timeout,
+                             proxies=proxies if proxies else {"http_proxy": None, "https_proxy": None}, sign=sign)
+
+    xhs.core.XhsClient = XhsClient

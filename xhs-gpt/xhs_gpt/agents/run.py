@@ -25,11 +25,12 @@ Pay attention the dependency relation among them, some tools may require the out
 
 llm = ChatOpenAI(temperature=.3, model="gpt-4-1106-preview")
 xhs_llm = llm.bind(functions=xhs_tool_prompts)
-from langchain.pydantic_v1 import BaseModel
+from langchain.pydantic_v1 import BaseModel, Field
 
 
 class XHSInput(BaseModel):
-    input: str
+    input: str = Field(description="What's your plan with Xiaohongshu?",
+                       default='分析情感领域中最受欢迎的一篇笔记，针对其内容发表一篇犀利风趣的笔记。我偏好通过二维码登录。')
 
 
 class XHSOutput(BaseModel):

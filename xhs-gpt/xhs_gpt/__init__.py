@@ -1,3 +1,4 @@
-from .patch import monkey_patch
+from .patch import patch_xhs, patch_langchain
 
-monkey_patch()
+patch_langchain()
+# patch_xhs()

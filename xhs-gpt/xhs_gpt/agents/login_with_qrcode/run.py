@@ -115,8 +115,9 @@ class DisplayQRCode:
         label.pack()
 
         # 显示文字
-        text = "Scan the QR Code, confirm login on your phone, then close the window to continue."
-        text_label = tk.Label(root, text=text, font=("Arial", 16))
+        text = """Scan the QR Code, confirm login on your phone, then close the window to continue.
+扫描二维码，在手机上确认登录，然后关闭该窗口。"""
+        text_label = tk.Label(root, text=text, font=("song ti", 16))
         text_label.pack()
 
         # 监听窗口关闭事件
